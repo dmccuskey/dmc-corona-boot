@@ -17,18 +17,11 @@ module_config = {
 	},
 	"examples": {
 		"dir": "examples",
-		"appsx": [
-			{
-				"dir": "dmc-files-readconfig",
-				"requires": []
-			}
-		]
+		"apps": []
 	},
 	"tests": {
-		"files": [
-		],
-		"requires": [
-		]
+		"files": [],
+		"requires": []
 	}
 }
 
