@@ -118,3 +118,17 @@ function test_L1R1_LBF1()
 	assert_equal( file.lib.name, 'lib-module-found', "names should be equal" )
 end
 
+
+-- config: a section name with digits, typed keys
+function test_config_sections()
+	local e4x = _G.__dmc_corona.dmc_e4x
+	assert_table( e4x, "section [DMC_E4X] should be read" )
+	assert_equal( e4x.debug_active, true, "BOOL should be true" )
+	assert_equal( e4x.max_depth, 40, "INT should be 40" )
+	assert_equal( e4x.level2_name, 'e4x', "names with digits should be read" )
+end
+
+-- the loader leaves no global _extend behind
+function test_no_global_extend()
+	assert_nil( rawget( _G, '_extend' ), "_extend should not be global" )
+end

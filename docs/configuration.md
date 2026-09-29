@@ -8,7 +8,7 @@ How `dmc_corona.cfg` is written, how `LUA_PATH` tells the loader where the DMC l
 |---|---|
 | [The config file](#the-config-file) | `dmc_corona.cfg` at the root of the project folder, read once, on the first `require` of a DMC library |
 | [File format](#file-format) | `[SECTION]` lines, then `NAME:TYPE = value` lines; everything else is ignored |
-| [Value types](#value-types) | `BOOL`, `INT`, `JSON`, `PATH`, `FILE`, `STR` (the default) |
+| [Value types](#value-types) | `BOOL`, `INT`, `JSON`, `PATH`, `FILE`, `STR` (the default); a bad value or an unknown type stops the app with an error |
 | [`LUA_PATH`](#lua_path) | the folders that hold DMC libraries, relative to the project root |
 | [How modules are found](#how-modules-are-found) | the project root first, then each `LUA_PATH` folder, then its `lib/dmc_lua/` |
 | [Library sections](#library-sections) | one section per library, for its own settings |
@@ -37,7 +37,7 @@ DEBUG_ACTIVE:BOOL = true
 
 The loader looks at the first character of each line:
 
-- A line starting with `[` and a capital letter starts a **section**: `[DMC_WEBSOCKETS]`. Section names are capital letters and underscores.
+- A line starting with `[` and a capital letter starts a **section**: `[DMC_WEBSOCKETS]`. Section names start with a capital letter, then letters, digits and underscores: `[DMC_E4X]`.
 - A line starting with a capital letter is a **setting**: `NAME:TYPE = value`.
 - Every other line is ignored: blank lines, comments (by convention `--`, as in Lua), and **indented lines**. An indented setting is skipped without a warning, so start settings at the first column.
 
@@ -45,7 +45,8 @@ Settings before the first section belong to `[DMC_CORONA]`.
 
 In a setting:
 
-- The name is capital letters and underscores. The type follows after a colon, with no spaces: `TIMER_MIN:INT`, not `TIMER_MIN : INT`. Without a type the value is a string.
+- The name starts with a capital letter, then letters, digits and underscores. The type follows after a colon, spaces optional: `TIMER_MIN:INT` or `TIMER_MIN : INT`. Without a type the value is a string.
+- A line that starts with a capital letter but isn't a setting (no `=`, for example) stops the app with an error naming the line.
 - Spaces around `=` are optional.
 - The value runs to the end of the line, so a setting line can't have a comment after the value. Quotes around the value are removed; they must match (`'hello'` or `"hello"`).
 - A section or setting that appears twice keeps the last value.
@@ -54,18 +55,18 @@ Inside Lua, section and setting names are lowercase: `[DMC_WEBSOCKETS]` `DEBUG_A
 
 ## Value Types
 
-The type is not case-sensitive (`:BOOL` or `:bool`). An unknown type is treated as a string.
+The type is not case-sensitive (`:BOOL` or `:bool`). An unknown type, or a value that doesn't fit its type, stops the app with an error naming the line or value.
 
 | Type | Value | Example | In Lua |
 |---|---|---|---|
-| `BOOL`, `BOOLEAN` | `true`; anything else is `false` | `DEBUG_ACTIVE:BOOL = true` | `true` |
-| `INT`, `INTEGER` | a number (decimals work too); anything else is an error | `TIMER_MIN:INT = 2000` | `2000` |
+| `BOOL`, `BOOLEAN` | `true` or `false`, any case; anything else is an error | `DEBUG_ACTIVE:BOOL = true` | `true` |
+| `INT`, `INTEGER` | a whole number; anything else is an error | `TIMER_MIN:INT = 2000` | `2000` |
 | `JSON` | JSON, decoded with Solar2D's `json` library | `LUA_PATH:JSON = [ "./dmc_corona" ]` | `{ "./dmc_corona" }` |
 | `PATH` | a folder path; `/` and `\` become `.` | `LOCATION:PATH = lib/dmc_corona` | `"lib.dmc_corona"` |
 | `FILE` | a file name, kept as a string | `NAMED_COLOR_FILE:FILE = colors.json` | `"colors.json"` |
 | `STR`, `STRING`, none | a string | `DATA_FILENAME = gamedata` | `"gamedata"` |
 
-Note that `DEBUG_ACTIVE:BOOL = yes` is `false`.
+Before 1.6.0 the checks were looser: a section name with a digit (`[DMC_E4X]`) stopped the app, `BOOL` read anything but `true` as `false`, `INT` took decimals, and an unknown type was read as a string.
 
 ## `LUA_PATH`
 
