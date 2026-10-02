@@ -1,6 +1,6 @@
 # Configuration
 
-How `dmc_corona.cfg` is written, how `LUA_PATH` tells the loader where the DMC libraries are, and how modules are found. The [Quick Start](../README.md#quick-start) covers the default setup, which needs no changes.
+How `dmc_corona.cfg` is written, how `LUA_PATH` tells the loader where the DMC libraries are, how modules are found, and how each library reads its own settings. The [Quick Start](../README.md#quick-start) covers the default setup, which needs no changes.
 
 ## Quick Reference
 
@@ -11,7 +11,7 @@ How `dmc_corona.cfg` is written, how `LUA_PATH` tells the loader where the DMC l
 | [Value types](#value-types) | `BOOL`, `INT`, `JSON`, `PATH`, `FILE`, `STR` (the default); a bad value or an unknown type stops the app with an error |
 | [`LUA_PATH`](#lua_path) | the folders that hold DMC libraries, relative to the project root |
 | [How modules are found](#how-modules-are-found) | the project root first, then each `LUA_PATH` folder, then its `lib/dmc_lua/` |
-| [Library sections](#library-sections) | one section per library, for its own settings |
+| [Library sections](#library-sections) | one section per library, merged over that library's defaults when it loads; the settings aren't globals |
 | [Several DMC libraries](#several-dmc-libraries) | merge the `dmc_corona/` folders and the config files |
 
 ## The Config File
@@ -51,7 +51,7 @@ In a setting:
 - The value runs to the end of the line, so a setting line can't have a comment after the value. Quotes around the value are removed; they must match (`'hello'` or `"hello"`).
 - A section or setting that appears twice keeps the last value.
 
-Inside Lua, section and setting names are lowercase: `[DMC_WEBSOCKETS]` `DEBUG_ACTIVE` is `_G.__dmc_corona.dmc_websockets.debug_active`. The libraries read their own section; your code doesn't need to.
+Inside Lua, section and setting names are lowercase: `[DMC_WEBSOCKETS]` `DEBUG_ACTIVE` is `_G.__dmc_corona.dmc_websockets.debug_active`. Each library reads its own section ([Library Sections](#library-sections)); your code doesn't need to.
 
 ## Value Types
 
@@ -123,15 +123,45 @@ Don't add a `LUA_PATH` folder to Lua's `package.path` as well. Modules would the
 
 ## Library Sections
 
-Each library reads its own section, named after the library in capitals: `[DMC_WEBSOCKETS]` for dmc-websockets, `[DMC_AUTOSTORE]` for dmc-autostore. Sections can come in any order after `[DMC_CORONA]`. A library uses its defaults for anything its section leaves out, and a missing section is fine.
+The settings aren't globals, and the loader doesn't act on them. It only parses the file into `_G.__dmc_corona`; a setting means something only to the library that reads it:
 
-The settings are listed in each library's documentation, and in the `dmc_corona.cfg` it ships with. For example, dmc-autostore's save timing:
+- `[DMC_CORONA]` is the loader's own section. The only setting it reads is [`LUA_PATH`](#lua_path).
+- Every other section belongs to one library and is named after it in capitals: `[DMC_AUTOSTORE]` for dmc-autostore. (One exception: dmc-gestures reads `[DMC_GESTURE]`.)
+
+When a library loads, on its first `require`, it takes its section and merges it over its built-in defaults: a setting in the file replaces that default, and anything the section leaves out keeps it. The library reads the result then and keeps it; to change a setting, edit the file and restart the app. For example, dmc-autostore saves 1 to 4 seconds after a change by default; this makes it 2 to 6:
 
 ```ini
 [DMC_AUTOSTORE]
 TIMER_MIN:INT = 2000
 TIMER_MAX:INT = 6000
 ```
+
+What follows from this:
+
+- **A missing or empty section is fine:** the library uses its defaults.
+- **A name the library doesn't know is ignored without a warning,** a misspelled one included. Check it against the library's documentation.
+- **A section for a library that isn't in the project is ignored,** so a merged config file can keep sections it no longer needs.
+- **The loader checks the type, the library the value.** `TIMER_MIN:INT = abc` stops the app when the file is read; `TIMER_MIN:INT = -5` passes the loader and is caught by dmc-autostore when it starts. How strictly a library checks its values varies.
+- **Sections can come in any order** after `[DMC_CORONA]`.
+
+Each library lists its settings, with their defaults and effects, in its Configuration section, and ships a `dmc_corona.cfg` with its section in it. These libraries have settings:
+
+| Library | Section | Settings |
+|---|---|---|
+| [dmc-autostore](https://github.com/dmccuskey/dmc-autostore/blob/master/docs/api.md#configuration) | `[DMC_AUTOSTORE]` | `TIMER_MIN`, `TIMER_MAX`, `DATA_FILENAME`, `PLUGIN_FILE`, `DEBUG_ACTIVE` |
+| [dmc-gestures](https://github.com/dmccuskey/dmc-gestures/blob/master/docs/api.md#configuration) | `[DMC_GESTURE]` (no S) | `DEBUG_ACTIVE` |
+| [dmc-kolor](https://github.com/dmccuskey/dmc-kolor/blob/master/docs/api.md#configuration) | `[DMC_KOLOR]` | `DEFAULT_COLOR_FORMAT`, `NAMED_COLOR_FILE` |
+| [dmc-kompatible](https://github.com/dmccuskey/dmc-kompatible/blob/master/README.md#configuration) | `[DMC_KOMPATIBLE]` | `MAKE_GLOBAL`, `PRINT_WARNINGS`, `ACTIVATE_*` |
+| [dmc-kozy](https://github.com/dmccuskey/dmc-kozy/blob/master/README.md#configuration) | `[DMC_KOZY]` | `MAKE_GLOBAL`, `ACTIVATE_*` |
+| [dmc-mockserver](https://github.com/dmccuskey/dmc-mockserver/blob/master/README.md#configuration) | `[DMC_MOCKSERVER]` | `DEBUG_ACTIVE` |
+| [dmc-navigator](https://github.com/dmccuskey/dmc-navigator/blob/master/README.md#configuration) | `[DMC_NAVIGATOR]` | `DEBUG_ACTIVE` |
+| [dmc-nicenet](https://github.com/dmccuskey/dmc-nicenet/blob/master/README.md#configuration) | `[DMC_NICENET]` | `DEBUG_ACTIVE`, `MAKE_GLOBAL` |
+| [dmc-performance](https://github.com/dmccuskey/dmc-performance/blob/master/README.md#configuration) | `[DMC_PERFORMANCE]` | `OUTPUT_MARKERS`, `MEMORY_ACTIVE` |
+| [dmc-sockets](https://github.com/dmccuskey/dmc-sockets/blob/master/docs/api.md#configuration) | `[DMC_SOCKETS]` | `CHECK_READS`, `CHECK_WRITES`, `THROTTLE_LEVEL` |
+| [dmc-wamp](https://github.com/dmccuskey/dmc-wamp/blob/master/docs/api.md#configuration) | `[DMC_WAMP]` | `DEBUG_ACTIVE` |
+| [dmc-websockets](https://github.com/dmccuskey/dmc-websockets/blob/master/docs/api.md#configuration) | `[DMC_WEBSOCKETS]` | `DEBUG_ACTIVE` (no effect yet) |
+
+The others (dmc-objects, dmc-touchmanager, dmc-utils and the rest) have none; their section can be left out.
 
 ## Several DMC Libraries
 
