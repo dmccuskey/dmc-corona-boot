@@ -24,7 +24,7 @@ DEBUG_ACTIVE:BOOL = true
 
 ## Quick Start
 
-This sets up the DMC library layout in a Solar2D project and loads a library from it, in about 5 minutes, in the Solar2D Simulator on macOS or Windows. It uses [dmc-websockets](https://github.com/dmccuskey/dmc-websockets) as the example library; any DMC library works the same way.
+The following code will get you up and running in about 5 minutes in the Solar2D Simulator on macOS or Windows. It sets up the DMC library layout in a project and loads a library from it. It uses [dmc-websockets](https://github.com/dmccuskey/dmc-websockets) as the example library; any DMC library works the same way.
 
 Prerequisites: the [Solar2D](https://solar2d.com/) Simulator and a copy of a DMC library (`git clone https://github.com/dmccuskey/dmc-websockets.git`, or download the ZIP from GitHub). Each DMC library already includes `dmc_corona_boot.lua`; you don't need this repository to use one.
 
